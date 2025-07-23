@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -14,14 +13,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import com.example.spend_wise.ui.theme.Spend_WiseTheme
 
-class LoginActivity : ComponentActivity() {
+class SignUpActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -31,7 +29,7 @@ class LoginActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color(0xFFE0F7FA) // Light blue background
                 ) {
-                    LoginScreen()
+                    SignUpScreen()
                 }
             }
         }
@@ -39,12 +37,12 @@ class LoginActivity : ComponentActivity() {
 }
 
 @Composable
-fun LoginScreen() {
+fun SignUpScreen() {
     val context = LocalContext.current
-
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var loginMessage by remember { mutableStateOf<String?>(null) }
+    var confirmPassword by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -53,18 +51,8 @@ fun LoginScreen() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Logo
-        Image(
-            painter = painterResource(id = R.drawable.logo),
-            contentDescription = "App Logo",
-            modifier = Modifier
-                .size(150.dp)
-                .padding(bottom = 24.dp)
-        )
-
-        // Login Title
         Text(
-            text = "Login",
+            text = "Sign Up",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black
@@ -89,38 +77,40 @@ fun LoginScreen() {
             modifier = Modifier.fillMaxWidth()
         )
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = confirmPassword,
+            onValueChange = { confirmPassword = it },
+            label = { Text("Confirm Password") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth()
+        )
+
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
             onClick = {
-                loginMessage = when {
-                    email.isBlank() || password.isBlank() -> "Please enter both email and password"
-                    email == "admin@example.com" && password == "admin123" -> "Login successful!"
-                    else -> "Invalid credentials"
+                if (email.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
+                    message = "Please fill in all fields"
+                } else if (password != confirmPassword) {
+                    message = "Passwords do not match"
+                } else if (password.length < 6) {
+                    message = "Password must be at least 6 characters"
+                } else {
+                    // Navigate to LoginActivity
+                    context.startActivity(Intent(context, LoginActivity::class.java))
+                    (context as? ComponentActivity)?.finish() // Optional: close SignUpActivity
                 }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Login")
+            Text("Sign Up")
         }
 
-        // Message
-        loginMessage?.let {
+        message?.let {
             Spacer(modifier = Modifier.height(16.dp))
             Text(text = it, color = Color.Red)
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Sign Up Redirect Button
-        TextButton(
-            onClick = {
-                context.startActivity(Intent(context, SignUpActivity::class.java))
-            }
-        ) {
-            Text("Don't have an account? Sign Up")
-        }
     }
 }
-
-
