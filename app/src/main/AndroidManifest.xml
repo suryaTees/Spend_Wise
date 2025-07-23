@@ -48,6 +48,16 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.Spend_Wise" />
+        <activity
+            android:name=".AddBudgetActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Spend_Wise" />
+        <activity
+            android:name=".AddExpenseActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Spend_Wise" />
 
     </application>
 
