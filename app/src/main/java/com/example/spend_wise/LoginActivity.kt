@@ -2,11 +2,11 @@ package com.example.spend_wise
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,6 +20,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.spend_wise.ui.theme.Spend_WiseTheme
+import com.google.firebase.auth.FirebaseAuth
 
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,10 +42,12 @@ class LoginActivity : ComponentActivity() {
 @Composable
 fun LoginScreen() {
     val context = LocalContext.current
+    val auth = remember { FirebaseAuth.getInstance() }
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var loginMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -91,12 +94,24 @@ fun LoginScreen() {
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Login Button
         Button(
             onClick = {
-                loginMessage = when {
-                    email.isBlank() || password.isBlank() -> "Please enter both email and password"
-                    email == "admin@example.com" && password == "admin123" -> "Login successful!"
-                    else -> "Invalid credentials"
+                loginMessage = null
+                if (email.isBlank() || password.isBlank()) {
+                    loginMessage = "Please enter both email and password"
+                } else {
+                    isLoading = true
+                    auth.signInWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
+                            isLoading = false
+                            if (task.isSuccessful) {
+                                Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
+                                // TODO: Navigate to home screen if needed
+                            } else {
+                                loginMessage = task.exception?.message ?: "Login failed"
+                            }
+                        }
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -104,7 +119,12 @@ fun LoginScreen() {
             Text("Login")
         }
 
-        // Message
+        if (isLoading) {
+            Spacer(modifier = Modifier.height(16.dp))
+            CircularProgressIndicator()
+        }
+
+        // Error or status message
         loginMessage?.let {
             Spacer(modifier = Modifier.height(16.dp))
             Text(text = it, color = Color.Red)
@@ -122,5 +142,3 @@ fun LoginScreen() {
         }
     }
 }
-
-

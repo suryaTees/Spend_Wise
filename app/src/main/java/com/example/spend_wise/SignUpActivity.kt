@@ -2,6 +2,7 @@ package com.example.spend_wise
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -13,21 +14,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
 import com.example.spend_wise.ui.theme.Spend_WiseTheme
+import com.google.firebase.FirebaseApp
+
+import com.google.firebase.auth.FirebaseAuth
+
+
+
 
 class SignUpActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize Firebase
+        FirebaseApp.initializeApp(this)
+
         enableEdgeToEdge()
         setContent {
             Spend_WiseTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFFE0F7FA) // Light blue background
+                    color = Color(0xFFE0F7FA)
                 ) {
                     SignUpScreen()
                 }
@@ -39,10 +50,13 @@ class SignUpActivity : ComponentActivity() {
 @Composable
 fun SignUpScreen() {
     val context = LocalContext.current
+    val auth = remember { FirebaseAuth.getInstance() }
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -91,6 +105,7 @@ fun SignUpScreen() {
 
         Button(
             onClick = {
+                message = null
                 if (email.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
                     message = "Please fill in all fields"
                 } else if (password != confirmPassword) {
@@ -98,14 +113,28 @@ fun SignUpScreen() {
                 } else if (password.length < 6) {
                     message = "Password must be at least 6 characters"
                 } else {
-                    // Navigate to LoginActivity
-                    context.startActivity(Intent(context, LoginActivity::class.java))
-                    (context as? ComponentActivity)?.finish() // Optional: close SignUpActivity
+                    isLoading = true
+                    auth.createUserWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
+                            isLoading = false
+                            if (task.isSuccessful) {
+                                Toast.makeText(context, "Sign-up successful!", Toast.LENGTH_SHORT).show()
+                                context.startActivity(Intent(context, LoginActivity::class.java))
+                                (context as? ComponentActivity)?.finish()
+                            } else {
+                                message = task.exception?.message ?: "Sign-up failed"
+                            }
+                        }
                 }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Sign Up")
+        }
+
+        if (isLoading) {
+            Spacer(modifier = Modifier.height(16.dp))
+            CircularProgressIndicator()
         }
 
         message?.let {
