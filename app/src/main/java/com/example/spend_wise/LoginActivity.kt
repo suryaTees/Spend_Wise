@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -12,71 +11,35 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.tooling.preview.Preview
 import com.example.spend_wise.ui.theme.Spend_WiseTheme
-import kotlinx.coroutines.delay
 
-class MainActivity : ComponentActivity() {
+class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             Spend_WiseTheme {
-                AppWithSplashScreen()
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color(0xFFE0F7FA) // Light blue background
+                ) {
+                    LoginScreen()
+                }
             }
         }
     }
 }
 
 @Composable
-fun AppWithSplashScreen() {
-    var showSplash by remember { mutableStateOf(true) }
-
-    LaunchedEffect(Unit) {
-        delay(2000L) // Show splash for 2 seconds
-        showSplash = false
-    }
-
-    if (showSplash) {
-        SplashScreen()
-    } else {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            LoginScreen(modifier = Modifier.padding(innerPadding))
-        }
-    }
-}
-
-@Composable
-fun SplashScreen() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFE0F7FA))
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Image(
-            painter = painterResource(id = R.drawable.logo),
-            contentDescription = "App Logo",
-            modifier = Modifier
-                .width(250.dp)
-                .height(250.dp)
-        )
-    }
-}
-
-@Composable
-fun LoginScreen(modifier: Modifier = Modifier) {
+fun LoginScreen() {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
             .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -104,18 +67,10 @@ fun LoginScreen(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = { /* TODO: Handle login logic */ },
+            onClick = { /* TODO: Handle login */ },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Login")
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoginScreenPreview() {
-    Spend_WiseTheme {
-        LoginScreen()
     }
 }
