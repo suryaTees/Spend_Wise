@@ -107,7 +107,8 @@ fun LoginScreen() {
                             isLoading = false
                             if (task.isSuccessful) {
                                 Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
-                                // TODO: Navigate to home screen if needed
+                                context.startActivity(Intent(context, HomeActivity::class.java))
+                                (context as? ComponentActivity)?.finish()
                             } else {
                                 loginMessage = task.exception?.message ?: "Login failed"
                             }
