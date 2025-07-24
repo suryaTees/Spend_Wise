@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -54,7 +55,8 @@ fun HomeScreen() {
 
     val db = FirebaseFirestore.getInstance()
     var selectedDate by remember { mutableStateOf("") }
-    var showMenu by remember { mutableStateOf(false) }
+    var showCalendarMenu by remember { mutableStateOf(false) }
+    var showProfileMenu by remember { mutableStateOf(false) }
 
     var totalBudget by remember { mutableStateOf(0) }
     var totalExpenses by remember { mutableStateOf(0) }
@@ -62,10 +64,8 @@ fun HomeScreen() {
     val sdf = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Function to fetch Firestore data for a given date
     fun fetchDataForDate(dateFilter: String) {
         if (user == null) return
-
         coroutineScope.launch {
             try {
                 val budgetSnapshot = db.collection("budgets")
@@ -93,7 +93,6 @@ fun HomeScreen() {
         }
     }
 
-    // Fetch on first launch
     LaunchedEffect(Unit) {
         fetchDataForDate(selectedDate)
     }
@@ -105,7 +104,7 @@ fun HomeScreen() {
             { _, year, month, dayOfMonth ->
                 calendar.set(year, month, dayOfMonth)
                 selectedDate = sdf.format(calendar.time)
-                fetchDataForDate(selectedDate) // Fetch immediately on date selection
+                fetchDataForDate(selectedDate)
             },
             calendar.get(Calendar.YEAR),
             calendar.get(Calendar.MONTH),
@@ -121,40 +120,80 @@ fun HomeScreen() {
             .padding(horizontal = 24.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Top bar with Calendar dropdown
+        // Top bar: Profile icon on left, calendar on right
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp),
-            horizontalArrangement = Arrangement.End
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Box {
-                IconButton(onClick = { showMenu = true }) {
+                IconButton(onClick = { showProfileMenu = true }) {
+                    Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
+                }
+
+                DropdownMenu(
+                    expanded = showProfileMenu,
+                    onDismissRequest = { showProfileMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Edit Profile") },
+                        onClick = {
+                            showProfileMenu = false
+                            Toast.makeText(context, "Edit Profile clicked", Toast.LENGTH_SHORT).show()
+                            // context.startActivity(Intent(context, EditProfileActivity::class.java))
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("GDPR Compliance") },
+                        onClick = {
+                            showProfileMenu = false
+                            Toast.makeText(context, "GDPR Compliance clicked", Toast.LENGTH_SHORT).show()
+                            // context.startActivity(Intent(context, GdprActivity::class.java))
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Privacy Policy") },
+                        onClick = {
+                            showProfileMenu = false
+                            Toast.makeText(context, "Privacy Policy clicked", Toast.LENGTH_SHORT).show()
+                            // context.startActivity(Intent(context, PrivacyPolicyActivity::class.java))
+                        }
+                    )
+                }
+            }
+
+
+            Box {
+                IconButton(onClick = { showCalendarMenu = true }) {
                     Icon(Icons.Default.CalendarToday, contentDescription = "Calendar")
                 }
 
                 DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
+                    expanded = showCalendarMenu,
+                    onDismissRequest = { showCalendarMenu = false }
                 ) {
                     DropdownMenuItem(
                         text = { Text("All") },
                         onClick = {
                             selectedDate = ""
-                            showMenu = false
+                            showCalendarMenu = false
                             fetchDataForDate("")
                         }
                     )
                     DropdownMenuItem(
                         text = { Text("Select Date") },
                         onClick = {
-                            showMenu = false
+                            showCalendarMenu = false
                             openDatePicker()
                         }
                     )
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp)) //  Shift content down a bit more
 
         Text("Welcome to Spend Wise!", style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(4.dp))
