@@ -9,15 +9,17 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.spend_wise.ui.theme.Spend_WiseTheme
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -50,49 +52,90 @@ fun HomeScreen() {
     val user = FirebaseAuth.getInstance().currentUser
     val email = user?.email ?: "Unknown"
 
-    val totalBudget = remember { 5000 }
-    val totalExpenses = remember { 3200 }
-    val remaining = totalBudget - totalExpenses
+    val db = FirebaseFirestore.getInstance()
+    val coroutineScope = rememberCoroutineScope()
 
     var selectedDate by remember { mutableStateOf("") }
     var showMenu by remember { mutableStateOf(false) }
+    var totalBudget by remember { mutableStateOf(0) }
+    var totalExpenses by remember { mutableStateOf(0) }
 
-    // Date Picker logic
+    // Fetch Firestore data
+    fun fetchData() {
+        if (user == null) return
+        val dateFilter = selectedDate.trim()
+
+        coroutineScope.launch {
+            db.collection("budgets")
+                .whereEqualTo("userId", user.uid)
+                .get()
+                .addOnSuccessListener { result ->
+                    val filtered = result.documents.filter {
+                        dateFilter.isBlank() || it.getString("date") == dateFilter
+                    }
+                    totalBudget = filtered.sumOf {
+                        (it.getDouble("amount") ?: 0.0).toInt()
+                    }
+                }
+
+            db.collection("expenses")
+                .whereEqualTo("userId", user.uid)
+                .get()
+                .addOnSuccessListener { result ->
+                    val filtered = result.documents.filter {
+                        dateFilter.isBlank() || it.getString("date") == dateFilter
+                    }
+                    totalExpenses = filtered.sumOf {
+                        (it.getDouble("amount") ?: 0.0).toInt()
+                    }
+                }
+        }
+    }
+
+    // Initial fetch
+    LaunchedEffect(Unit) {
+        fetchData()
+    }
+
     fun openDatePicker() {
         val calendar = Calendar.getInstance()
-        val datePickerDialog = DatePickerDialog(
+        DatePickerDialog(
             context,
             { _, year, month, dayOfMonth ->
                 val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
                 calendar.set(year, month, dayOfMonth)
                 selectedDate = sdf.format(calendar.time)
+                fetchData()
             },
             calendar.get(Calendar.YEAR),
             calendar.get(Calendar.MONTH),
             calendar.get(Calendar.DAY_OF_MONTH)
-        )
-        datePickerDialog.show()
+        ).show()
     }
+
+    val remaining = totalBudget - totalExpenses
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp)
-            .padding(top = 50.dp),
+            .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        // Top Right Calendar Icon Menu
+        // Top Row: Refresh + Calendar
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            IconButton(onClick = { fetchData() }) {
+                Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+            }
+
             Box {
                 IconButton(onClick = { showMenu = true }) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarToday,
-                        contentDescription = "Select Date"
-                    )
+                    Icon(Icons.Default.CalendarToday, contentDescription = "Calendar")
                 }
 
                 DropdownMenu(
@@ -104,10 +147,11 @@ fun HomeScreen() {
                         onClick = {
                             selectedDate = ""
                             showMenu = false
+                            fetchData()
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Date") },
+                        text = { Text("Select Date") },
                         onClick = {
                             openDatePicker()
                             showMenu = false
@@ -117,21 +161,14 @@ fun HomeScreen() {
             }
         }
 
-        Text(
-            text = "Welcome to Spend Wise!",
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center
-        )
+        Spacer(modifier = Modifier.height(32.dp)) // Push main content a bit lower
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Logged in as: $email",
-            style = MaterialTheme.typography.bodyMedium
-        )
+        Text("Welcome to Spend Wise!", style = MaterialTheme.typography.headlineSmall)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text("Logged in as: $email", style = MaterialTheme.typography.bodyMedium)
 
         if (selectedDate.isNotBlank()) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text("Filtered by: $selectedDate", style = MaterialTheme.typography.bodySmall)
         }
 
@@ -143,42 +180,33 @@ fun HomeScreen() {
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Total Budget: ₹$totalBudget", style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text("Total Expenses: ₹$totalExpenses", style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text("Remaining: ₹$remaining", style = MaterialTheme.typography.titleMedium)
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        val context = LocalContext.current
-
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Button(onClick = {
                 context.startActivity(Intent(context, AddBudgetActivity::class.java))
-            }) {
-                Text("Add Budget")
-            }
+            }) { Text("Add Budget") }
 
             Button(onClick = {
                 context.startActivity(Intent(context, AddExpenseActivity::class.java))
-            }) {
-                Text("Add Expense")
-            }
+            }) { Text("Add Expense") }
         }
-
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        Button(
-            onClick = {
-                FirebaseAuth.getInstance().signOut()
-                Toast.makeText(context, "Logged out", Toast.LENGTH_SHORT).show()
-                context.startActivity(Intent(context, LoginActivity::class.java))
-                (context as? ComponentActivity)?.finish()
-            }
-        ) {
+        Button(onClick = {
+            FirebaseAuth.getInstance().signOut()
+            Toast.makeText(context, "Logged out", Toast.LENGTH_SHORT).show()
+            context.startActivity(Intent(context, LoginActivity::class.java))
+            (context as? ComponentActivity)?.finish()
+        }) {
             Text("Logout")
         }
     }
