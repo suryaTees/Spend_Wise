@@ -142,7 +142,7 @@ fun HomeScreen() {
                         onClick = {
                             showProfileMenu = false
                             Toast.makeText(context, "Edit Profile clicked", Toast.LENGTH_SHORT).show()
-                            // context.startActivity(Intent(context, EditProfileActivity::class.java))
+                            context.startActivity(Intent(context, EditProfileActivity::class.java))
                         }
                     )
                     DropdownMenuItem(
@@ -150,7 +150,7 @@ fun HomeScreen() {
                         onClick = {
                             showProfileMenu = false
                             Toast.makeText(context, "GDPR Compliance clicked", Toast.LENGTH_SHORT).show()
-                            // context.startActivity(Intent(context, GdprActivity::class.java))
+                            context.startActivity(Intent(context, GdprActivity::class.java))
                         }
                     )
                     DropdownMenuItem(
@@ -158,7 +158,7 @@ fun HomeScreen() {
                         onClick = {
                             showProfileMenu = false
                             Toast.makeText(context, "Privacy Policy clicked", Toast.LENGTH_SHORT).show()
-                            // context.startActivity(Intent(context, PrivacyPolicyActivity::class.java))
+                            context.startActivity(Intent(context, PrivacyPolicyActivity::class.java))
                         }
                     )
                 }
