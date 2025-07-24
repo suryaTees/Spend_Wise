@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import com.example.spend_wise.ui.theme.Spend_WiseTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import java.text.SimpleDateFormat
+import java.util.*
 
 class AddExpenseActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,6 +40,9 @@ fun AddExpenseScreen(onBack: () -> Unit) {
 
     var amount by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+
+    val sdf = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
+    val currentDate = sdf.format(Date())
 
     Scaffold(
         topBar = {
@@ -93,7 +98,8 @@ fun AddExpenseScreen(onBack: () -> Unit) {
                     val data = hashMapOf(
                         "amount" to expenseValue,
                         "timestamp" to System.currentTimeMillis(),
-                        "userId" to user.uid
+                        "userId" to user.uid,
+                        "date" to currentDate // <-- Added date field
                     )
 
                     db.collection("expenses")

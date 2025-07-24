@@ -9,7 +9,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +19,7 @@ import com.example.spend_wise.ui.theme.Spend_WiseTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -53,48 +53,49 @@ fun HomeScreen() {
     val email = user?.email ?: "Unknown"
 
     val db = FirebaseFirestore.getInstance()
-    val coroutineScope = rememberCoroutineScope()
-
     var selectedDate by remember { mutableStateOf("") }
     var showMenu by remember { mutableStateOf(false) }
+
     var totalBudget by remember { mutableStateOf(0) }
     var totalExpenses by remember { mutableStateOf(0) }
 
-    // Fetch Firestore data
-    fun fetchData() {
+    val sdf = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Function to fetch Firestore data for a given date
+    fun fetchDataForDate(dateFilter: String) {
         if (user == null) return
-        val dateFilter = selectedDate.trim()
 
         coroutineScope.launch {
-            db.collection("budgets")
-                .whereEqualTo("userId", user.uid)
-                .get()
-                .addOnSuccessListener { result ->
-                    val filtered = result.documents.filter {
-                        dateFilter.isBlank() || it.getString("date") == dateFilter
-                    }
-                    totalBudget = filtered.sumOf {
-                        (it.getDouble("amount") ?: 0.0).toInt()
-                    }
+            try {
+                val budgetSnapshot = db.collection("budgets")
+                    .whereEqualTo("userId", user.uid)
+                    .get()
+                    .await()
+
+                val expenseSnapshot = db.collection("expenses")
+                    .whereEqualTo("userId", user.uid)
+                    .get()
+                    .await()
+
+                val filteredBudgets = budgetSnapshot.documents.filter {
+                    dateFilter.isBlank() || it.getString("date") == dateFilter
+                }
+                val filteredExpenses = expenseSnapshot.documents.filter {
+                    dateFilter.isBlank() || it.getString("date") == dateFilter
                 }
 
-            db.collection("expenses")
-                .whereEqualTo("userId", user.uid)
-                .get()
-                .addOnSuccessListener { result ->
-                    val filtered = result.documents.filter {
-                        dateFilter.isBlank() || it.getString("date") == dateFilter
-                    }
-                    totalExpenses = filtered.sumOf {
-                        (it.getDouble("amount") ?: 0.0).toInt()
-                    }
-                }
+                totalBudget = filteredBudgets.sumOf { (it.getDouble("amount") ?: 0.0).toInt() }
+                totalExpenses = filteredExpenses.sumOf { (it.getDouble("amount") ?: 0.0).toInt() }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error fetching data: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
-    // Initial fetch
+    // Fetch on first launch
     LaunchedEffect(Unit) {
-        fetchData()
+        fetchDataForDate(selectedDate)
     }
 
     fun openDatePicker() {
@@ -102,10 +103,9 @@ fun HomeScreen() {
         DatePickerDialog(
             context,
             { _, year, month, dayOfMonth ->
-                val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
                 calendar.set(year, month, dayOfMonth)
                 selectedDate = sdf.format(calendar.time)
-                fetchData()
+                fetchDataForDate(selectedDate) // Fetch immediately on date selection
             },
             calendar.get(Calendar.YEAR),
             calendar.get(Calendar.MONTH),
@@ -118,21 +118,16 @@ fun HomeScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = 24.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Top Row: Refresh + Calendar
+        // Top bar with Calendar dropdown
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(bottom = 24.dp),
+            horizontalArrangement = Arrangement.End
         ) {
-            IconButton(onClick = { fetchData() }) {
-                Icon(Icons.Default.Refresh, contentDescription = "Refresh")
-            }
-
             Box {
                 IconButton(onClick = { showMenu = true }) {
                     Icon(Icons.Default.CalendarToday, contentDescription = "Calendar")
@@ -147,21 +142,19 @@ fun HomeScreen() {
                         onClick = {
                             selectedDate = ""
                             showMenu = false
-                            fetchData()
+                            fetchDataForDate("")
                         }
                     )
                     DropdownMenuItem(
                         text = { Text("Select Date") },
                         onClick = {
-                            openDatePicker()
                             showMenu = false
+                            openDatePicker()
                         }
                     )
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(32.dp)) // Push main content a bit lower
 
         Text("Welcome to Spend Wise!", style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(4.dp))

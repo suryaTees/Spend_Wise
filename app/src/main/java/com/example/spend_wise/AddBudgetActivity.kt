@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import com.example.spend_wise.ui.theme.Spend_WiseTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import java.text.SimpleDateFormat
+import java.util.*
 
 class AddBudgetActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,6 +40,9 @@ fun AddBudgetScreen() {
 
     val user = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
+
+    val sdf = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
+    val currentDate = sdf.format(Date())
 
     Scaffold(
         topBar = {
@@ -95,7 +100,8 @@ fun AddBudgetScreen() {
                     val data = hashMapOf(
                         "amount" to budgetValue,
                         "timestamp" to System.currentTimeMillis(),
-                        "userId" to user.uid
+                        "userId" to user.uid,
+                        "date" to currentDate // <-- This makes it filterable!
                     )
 
                     db.collection("budgets")
