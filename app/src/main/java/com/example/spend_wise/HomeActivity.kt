@@ -152,14 +152,22 @@ fun HomeScreen() {
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        val context = LocalContext.current
+
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Button(onClick = { /* TODO: Add Budget */ }) {
+            Button(onClick = {
+                context.startActivity(Intent(context, AddBudgetActivity::class.java))
+            }) {
                 Text("Add Budget")
             }
-            Button(onClick = { /* TODO: Add Expense */ }) {
+
+            Button(onClick = {
+                context.startActivity(Intent(context, AddExpenseActivity::class.java))
+            }) {
                 Text("Add Expense")
             }
         }
+
 
         Spacer(modifier = Modifier.height(40.dp))
 
